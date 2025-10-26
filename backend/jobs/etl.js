@@ -13,13 +13,14 @@ const SyncJob = require('../models/SyncJob');
 
 // States to sync (from RPD section 1)
 const STATES = [
-  'UTTAR PRADESH', 'MADHYA PRADESH', 'BIHAR', 'ASSAM', 'MAHARASHTRA', 
-  'GUJARAT', 'RAJASTHAN', 'TAMIL NADU', 'CHHATTISGARH', 'KARNATAKA',
-  'TELANGANA', 'ODISHA', 'ANDHRA PRADESH', 'PUNJAB', 'JHARKHAND',
-  'HARYANA', 'ARUNACHAL PRADESH', 'JAMMU AND KASHMIR', 'MANIPUR',
-  'UTTARAKHAND', 'KERALA', 'HIMACHAL PRADESH', 'MEGHALAYA', 'WEST BENGAL',
-  'MIZORAM', 'NAGALAND', 'TRIPURA', 'SIKKIM', 'ANDAMAN AND NICOBAR',
-  'LADAKH', 'PUDUCHERRY', 'GOA', 'DN HAVELI AND DD', 'LAKSHADWEEP'
+  'UTTAR PRADESH'
+  // 'MADHYA PRADESH', 'BIHAR', 'ASSAM', 'MAHARASHTRA', 
+  // 'GUJARAT', 'RAJASTHAN', 'TAMIL NADU', 'CHHATTISGARH', 'KARNATAKA',
+  // 'TELANGANA', 'ODISHA', 'ANDHRA PRADESH', 'PUNJAB', 'JHARKHAND',
+  // 'HARYANA', 'ARUNACHAL PRADESH', 'JAMMU AND KASHMIR', 'MANIPUR',
+  // 'UTTARAKHAND', 'KERALA', 'HIMACHAL PRADESH', 'MEGHALAYA', 'WEST BENGAL',
+  // 'MIZORAM', 'NAGALAND', 'TRIPURA', 'SIKKIM', 'ANDAMAN AND NICOBAR',
+  // 'LADAKH', 'PUDUCHERRY', 'GOA', 'DN HAVELI AND DD', 'LAKSHADWEEP'
 ];
 
 /**
@@ -37,30 +38,39 @@ async function syncState(stateName, finYear = '2024-2025', syncJob) {
       return { state: stateName, success: false, error: result.error };
     }
 
-    // Save raw response
+    // Save raw response (store summary instead of full data to avoid MongoDB 16MB limit)
+    const rawDataSummary = {
+      total_records: result.records.length,
+      sample_record: result.records[0], // Keep one sample record for debugging
+      fetched_at: new Date(),
+      state: stateName,
+      fin_year: finYear
+    };
+    
     const rawResponse = await RawResponse.create({
       endpoint: apiFetcher.buildURL({ state_name: stateName, fin_year: finYear }),
       fetch_time: new Date(),
       state: stateName,
-      raw_data: result,
+      raw_data: rawDataSummary, // Store summary instead of full data
       status: 'success',
-      response_size_bytes: JSON.stringify(result).length
+      response_size_bytes: JSON.stringify(rawDataSummary).length
     });
 
     console.log(`💾 Saved raw response for ${stateName} (${result.records.length} records)`);
 
     // Ensure districts exist
+    console.log(`🔄 Starting district processing for ${stateName}...`);
     const districtResult = await etlNormalizer.ensureDistrictsExist(result);
     console.log(`📊 Districts - Created: ${districtResult.created.length}, Existing: ${districtResult.existing.length}`);
 
     // Normalize and save metrics
+    console.log(`🔄 Starting metric processing for ${stateName}...`);
     const processResult = await etlNormalizer.processAndSave(
-      result,
+      result, // Use original result data with records
       rawResponse.endpoint,
       stateName,
       rawResponse._id
     );
-
     console.log(`✅ ${stateName} - Saved/Updated: ${processResult.saved + processResult.updated}, Errors: ${processResult.errors.length}`);
 
     return {

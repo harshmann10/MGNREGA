@@ -59,34 +59,32 @@ router.get('/compare/:district_code', async (req, res) => {
 
     res.json({
       success: true,
-      period: { year, month },
-      comparison: {
+      data: {
         district: {
           district_code,
           district_name: district.district_name,
           state,
-          metrics: {
-            total_households_worked: districtMetrics.total_households_worked,
-            total_persondays_generated: districtMetrics.total_persondays_generated,
-            total_wage_disbursed: districtMetrics.total_wage_disbursed,
-            pending_payments: districtMetrics.pending_payments
-          }
+          year,
+          month,
+          total_households_worked: districtMetrics.total_households_worked,
+          total_persondays_generated: districtMetrics.total_persondays_generated,
+          total_wage_disbursed: districtMetrics.total_wage_disbursed,
+          pending_payments: districtMetrics.pending_payments,
+          last_updated: districtMetrics.last_updated
         },
-        state_average: stateAverage ? {
-          avg_households: Math.round(stateAverage.avg_households),
-          avg_persondays: Math.round(stateAverage.avg_persondays),
-          avg_wages: Math.round(stateAverage.avg_wages),
-          avg_pending: Math.round(stateAverage.avg_pending)
+        state_avg: stateAverage ? {
+          total_households_worked: Math.round(stateAverage.avg_households),
+          total_persondays_generated: Math.round(stateAverage.avg_persondays),
+          total_wage_disbursed: Math.round(stateAverage.avg_wages),
+          pending_payments: Math.round(stateAverage.avg_pending)
         } : null,
         top_district: topDistrictInfo ? {
-          district_code: topDistrict.district_code,
           district_name: topDistrictInfo.district_name,
-          metrics: {
-            total_households_worked: topDistrict.total_households_worked,
-            total_persondays_generated: topDistrict.total_persondays_generated,
-            total_wage_disbursed: topDistrict.total_wage_disbursed,
-            pending_payments: topDistrict.pending_payments
-          }
+          district_code: topDistrict.district_code,
+          total_households_worked: topDistrict.total_households_worked,
+          total_persondays_generated: topDistrict.total_persondays_generated,
+          total_wage_disbursed: topDistrict.total_wage_disbursed,
+          pending_payments: topDistrict.pending_payments
         } : null
       },
       meta: {

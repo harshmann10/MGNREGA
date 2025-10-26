@@ -59,8 +59,8 @@ class APIFetcher {
           success: true,
           data: response.data,
           records: response.data.records,
-          total: response.data.total || 0,
-          count: response.data.count || 0
+          total: response.data.total || response.data.count || response.data.records?.length || 0,
+          count: response.data.count || response.data.records?.length || 0
         };
       }
 
@@ -132,17 +132,21 @@ class APIFetcher {
         return result;
       }
 
+      const recordsFetched = result.records.length;
       allRecords.push(...result.records);
       
-      // Check if there are more records
-      hasMore = result.records.length === limit;
-      offset += limit;
-
-      console.log(`📊 Fetched ${allRecords.length} total records for ${stateName}`);
-
-      // Small delay to avoid rate limiting
+      // Stop if we got fewer records than requested (end of data)
+      // or if we got 0 records (no more data)
+      hasMore = recordsFetched === limit && recordsFetched > 0;
+      
       if (hasMore) {
+        offset += limit;
+        console.log(`📊 Fetched ${allRecords.length} total records for ${stateName}, continuing...`);
+        
+        // Small delay to avoid rate limiting
         await this.sleep(1000);
+      } else {
+        console.log(`📊 Fetched ${allRecords.length} total records for ${stateName} (complete)`);
       }
     }
 

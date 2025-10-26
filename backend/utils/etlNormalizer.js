@@ -89,7 +89,7 @@ class ETLNormalizer {
   }
 
   /**
-   * Save raw response and normalize to district_metrics
+   * Save raw response and normalize to district_metrics using bulk operations
    */
   async processAndSave(rawData, endpoint, state, sourceRawId = null) {
     const results = {
@@ -103,51 +103,79 @@ class ETLNormalizer {
       return results;
     }
 
-    for (const record of rawData.records) {
+    const totalRecords = rawData.records.length;
+    console.log(`🔄 Processing ${totalRecords} records for ${state}...`);
+
+    // Prepare bulk operations
+    const bulkOps = [];
+    const processedRecords = [];
+
+    for (let i = 0; i < rawData.records.length; i++) {
+      const record = rawData.records[i];
+
+      // Progress logging every 1000 records
+      if (i > 0 && i % 1000 === 0) {
+        console.log(`📊 Processed ${i}/${totalRecords} records (${Math.round((i/totalRecords)*100)}%)`);
+      }
+
       try {
         const normalized = this.normalizeRecord(record);
-        
+
         if (!normalized || !normalized.district_code) {
-          results.errors.push({ 
-            record: record.district_name, 
-            error: 'Normalization failed or missing district_code' 
+          results.errors.push({
+            record: record.district_name,
+            error: 'Normalization failed or missing district_code'
           });
           continue;
         }
 
-        // Upsert district_metrics
-        const result = await DistrictMetric.findOneAndUpdate(
-          {
-            district_code: normalized.district_code,
-            year: normalized.year,
-            month: normalized.month
-          },
-          {
-            ...normalized,
-            source_raw_id: sourceRawId
-          },
-          {
+        // Add to bulk operations instead of individual upsert
+        bulkOps.push({
+          updateOne: {
+            filter: {
+              district_code: normalized.district_code,
+              year: normalized.year,
+              month: normalized.month
+            },
+            update: {
+              ...normalized,
+              source_raw_id: sourceRawId
+            },
             upsert: true,
-            new: true,
             setDefaultsOnInsert: true
           }
-        );
+        });
 
-        if (result) {
-          results.updated++;
-        } else {
-          results.saved++;
-        }
+        processedRecords.push(normalized);
 
       } catch (error) {
-        console.error(`❌ Error saving metric for ${record.district_name}:`, error.message);
-        results.errors.push({ 
-          record: record.district_name, 
-          error: error.message 
+        console.error(`❌ Error normalizing record for ${record.district_name}:`, error.message);
+        results.errors.push({
+          record: record.district_name,
+          error: error.message
         });
       }
     }
 
+    // Execute bulk operations in batches
+    const batchSize = 1000;
+    for (let i = 0; i < bulkOps.length; i += batchSize) {
+      const batch = bulkOps.slice(i, i + batchSize);
+      try {
+        const batchResult = await DistrictMetric.bulkWrite(batch);
+        results.saved += batchResult.upsertedCount || 0;
+        results.updated += batchResult.modifiedCount || 0;
+        console.log(`✅ Processed batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(bulkOps.length/batchSize)} (${batch.length} records)`);
+      } catch (error) {
+        console.error(`❌ Error in batch ${Math.floor(i/batchSize) + 1}:`, error.message);
+        results.errors.push({
+          batch: Math.floor(i/batchSize) + 1,
+          error: error.message
+        });
+      }
+    }
+
+    console.log(`✅ Completed processing ${totalRecords} records`);
     return results;
   }
 
