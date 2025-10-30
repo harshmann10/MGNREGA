@@ -4,10 +4,8 @@ const District = require('../models/District');
 
 /**
  * Seed districts collection with pan-India data
- * This is a starter seed with state-level info
- * District-level data will be populated during ETL from API
- * 
- * NOTE: Currently limited to Uttar Pradesh only for testing purposes
+ * This creates state entries only - actual districts are populated during ETL
+ * Note: No placeholder districts are created to avoid UI confusion
  */
 
 const statesData = [
@@ -53,41 +51,38 @@ async function seedDistricts() {
     
     await connectDatabase();
 
-    // Clear existing data (optional - comment out if you want to keep existing)
-    await District.deleteMany({});
-    console.log('🗑️  Cleared existing districts');
+    // Clear existing STATE LEVEL placeholders only
+    const deleteResult = await District.deleteMany({ 
+      district_name: { $regex: /STATE LEVEL/i } 
+    });
+    console.log(`🗑️  Removed ${deleteResult.deletedCount} STATE LEVEL placeholders`);
 
     let created = 0;
     let existing = 0;
 
     for (const stateData of statesData) {
-      // Check if state entry exists
-      const exists = await District.findOne({ 
-        state: stateData.state
+      // Check if any real districts exist for this state
+      const existingDistricts = await District.countDocuments({ 
+        state: stateData.state,
+        district_name: { $not: /STATE LEVEL/i }
       });
 
-      if (!exists) {
-        // Create placeholder district entry for state
-        // Actual districts will be populated during ETL
-        await District.create({
-          state: stateData.state,
-          state_code: stateData.state_code,
-          district_code: `${stateData.state_code}00`, // Placeholder code
-          district_name: `${stateData.state} - STATE LEVEL`,
-          aliases: stateData.aliases
-        });
+      if (existingDistricts === 0) {
+        console.log(`⏳ ${stateData.state}: No districts yet - will be populated by ETL`);
+        // Don't create placeholder entries - let ETL handle it
         created++;
-        console.log(`✅ Created state entry: ${stateData.state}`);
       } else {
+        console.log(`✅ ${stateData.state}: ${existingDistricts} districts already exist`);
         existing++;
       }
     }
 
     console.log(`\n✅ Seed complete!`);
-    console.log(`   Created: ${created} states`);
-    console.log(`   Existing: ${existing} states`);
-    console.log(`\n💡 Note: District-level data will be populated when you run the ETL job`);
-    console.log(`   Run: npm run etl\n`);
+    console.log(`   States ready for ETL: ${created}`);
+    console.log(`   States with districts: ${existing}`);
+    console.log(`\n💡 Run ETL to populate actual districts:`);
+    console.log(`   npm run etl:state "UTTAR PRADESH"  # Single state`);
+    console.log(`   npm run etl                        # All states\n`);
 
     process.exit(0);
 
