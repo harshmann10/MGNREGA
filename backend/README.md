@@ -42,19 +42,37 @@ npm start
 
 ## 📊 ETL Commands
 
-### Full Sync (All States)
+### Automatic Scheduling (Production)
+Start the scheduler for automatic data updates:
+```bash
+# Run scheduler in production
+npm run scheduler
+
+# Run scheduler in development (auto-restart)
+npm run scheduler:dev
+```
+
+Schedule:
+- **Full Sync**: Daily at 3:00 AM IST - All states
+- **Incremental Sync**: Every hour - Subset of states
+
+See [SCHEDULER.md](./SCHEDULER.md) for complete documentation.
+
+### Manual ETL Runs
+
+#### Full Sync (All States)
 Fetches and normalizes data for all pan-India states:
 ```bash
 npm run etl
 ```
 
-### Single State Sync
+#### Single State Sync
 Fetch data for a specific state:
 ```bash
 npm run etl:state "UTTAR PRADESH"
 ```
 
-### Incremental Sync
+#### Incremental Sync
 Quick sync for subset of states (for hourly updates):
 ```bash
 npm run etl:incremental
@@ -70,9 +88,10 @@ npm run etl:incremental
 | `/api/states` | GET | List all states |
 | `/api/districts?state=STATE` | GET | Districts for a state |
 | `/api/metrics/:district_code` | GET | Latest metrics for district |
-| `/api/metrics/:district_code?year=2024&month=10` | GET | Specific month metrics |
 | `/api/trends/:district_code?months=12` | GET | 12-month trend data |
 | `/api/compare/:district_code` | GET | District vs state comparison |
+| `/api/geolocate` | POST | GPS-based district detection |
+| `/api/ip-location` | GET | IP-based district detection |
 
 ### Example Requests
 
@@ -94,7 +113,17 @@ curl http://localhost:5000/api/compare/0901
 
 # Health check
 curl http://localhost:5000/api/health
+
+# Auto-detect location from GPS coordinates
+curl -X POST http://localhost:5000/api/geolocate \
+  -H "Content-Type: application/json" \
+  -d '{"lat": 28.6139, "lng": 77.2090}'
+
+# Auto-detect location from IP address
+curl http://localhost:5000/api/ip-location
 ```
+
+See [LOCATION_API.md](./LOCATION_API.md) for complete location detection documentation.
 
 ## 📁 Project Structure
 
@@ -112,9 +141,11 @@ backend/
 │   ├── districtRoutes.js    # /api/districts
 │   ├── metricRoutes.js      # /api/metrics
 │   ├── trendRoutes.js       # /api/trends
-│   └── compareRoutes.js     # /api/compare
+│   ├── compareRoutes.js     # /api/compare
+│   └── locationRoutes.js    # /api/geolocate, /api/ip-location
 ├── jobs/
-│   └── etl.js               # ETL worker
+│   ├── etl.js               # ETL worker
+│   └── scheduler.js         # Automatic ETL scheduler
 ├── scripts/
 │   ├── seedDistricts.js     # Seed pan-India states
 │   └── loadSampleData.js    # Load test data

@@ -8,19 +8,29 @@ const SyncJob = require('../models/SyncJob');
 /**
  * Main ETL Worker
  * Fetches data from data.gov.in and normalizes to district_metrics
- * As per RPD section 7: Daily full sync + hourly incremental
+ * As per RPD section 7: Weekly full sync + daily incremental (hot states only)
  */
 
-// States to sync (from RPD section 1)
+// All states to sync for full sync 
 const STATES = [
-  'UTTAR PRADESH'
-  // 'MADHYA PRADESH', 'BIHAR', 'ASSAM', 'MAHARASHTRA', 
-  // 'GUJARAT', 'RAJASTHAN', 'TAMIL NADU', 'CHHATTISGARH', 'KARNATAKA',
-  // 'TELANGANA', 'ODISHA', 'ANDHRA PRADESH', 'PUNJAB', 'JHARKHAND',
-  // 'HARYANA', 'ARUNACHAL PRADESH', 'JAMMU AND KASHMIR', 'MANIPUR',
-  // 'UTTARAKHAND', 'KERALA', 'HIMACHAL PRADESH', 'MEGHALAYA', 'WEST BENGAL',
-  // 'MIZORAM', 'NAGALAND', 'TRIPURA', 'SIKKIM', 'ANDAMAN AND NICOBAR',
-  // 'LADAKH', 'PUDUCHERRY', 'GOA', 'DN HAVELI AND DD', 'LAKSHADWEEP'
+  'UTTAR PRADESH','MADHYA PRADESH', 'BIHAR', 'ASSAM', 'MAHARASHTRA', 
+  'GUJARAT', 'RAJASTHAN', 'TAMIL NADU', 'CHHATTISGARH', 'KARNATAKA',
+  'TELANGANA', 'ODISHA', 'ANDHRA PRADESH', 'PUNJAB', 'JHARKHAND',
+  'HARYANA', 'ARUNACHAL PRADESH', 'JAMMU AND KASHMIR', 'MANIPUR',
+  'UTTARAKHAND', 'KERALA', 'HIMACHAL PRADESH', 'MEGHALAYA', 'WEST BENGAL',
+  'MIZORAM', 'NAGALAND', 'TRIPURA', 'SIKKIM', 'ANDAMAN AND NICOBAR',
+  'LADAKH', 'PUDUCHERRY', 'GOA', 'DN HAVELI AND DD', 'LAKSHADWEEP'
+];
+
+// High-traffic states for incremental sync (optimized for free-tier API limits)
+// These states typically have more MGNREGA activity and user interest
+const HOT_STATES = [
+  'UTTAR PRADESH',    // Highest population, high MGNREGA demand
+  'BIHAR',            // High rural employment dependency
+  'MADHYA PRADESH',   // Large state with high participation
+  'RAJASTHAN',        // High MGNREGA activity
+  'WEST BENGAL',      // High population density
+  'MAHARASHTRA'       // Large state, diverse employment patterns
 ];
 
 /**
@@ -148,7 +158,8 @@ async function runFullSync(statesToSync = null) {
 }
 
 /**
- * Incremental sync - sync only current month data
+ * Incremental sync - sync high-traffic states only (optimized for free-tier)
+ * Defaults to HOT_STATES to minimize API calls while keeping popular data fresh
  */
 async function runIncrementalSync(statesToSync = null) {
   console.log('\n🔄 Starting INCREMENTAL SYNC job...\n');
@@ -159,7 +170,7 @@ async function runIncrementalSync(statesToSync = null) {
     status: 'running'
   });
 
-  const states = statesToSync || STATES.slice(0, 5); // Sync subset for incremental
+  const states = statesToSync || HOT_STATES; // Default to hot states only
   const results = [];
   let totalRecords = 0;
 
@@ -171,7 +182,7 @@ async function runIncrementalSync(statesToSync = null) {
       totalRecords += result.records || 0;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
   const successful = results.filter(r => r.success).length;
@@ -230,7 +241,9 @@ async function main() {
 module.exports = {
   runFullSync,
   runIncrementalSync,
-  syncState
+  syncState,
+  STATES,
+  HOT_STATES
 };
 
 // Run if called directly

@@ -9,9 +9,12 @@
     "dev": "nodemon server.js",
     "seed": "node scripts/seedDistricts.js",
     "sample": "node scripts/loadSampleData.js",
+    "add-centroids": "node scripts/addCentroids.js",
     "etl": "node jobs/etl.js",
     "etl:state": "node jobs/etl.js state",
-    "etl:incremental": "node jobs/etl.js incremental"
+    "etl:incremental": "node jobs/etl.js incremental",
+    "scheduler": "node jobs/scheduler.js",
+    "scheduler:dev": "nodemon jobs/scheduler.js"
   },
   "keywords": [],
   "author": "",

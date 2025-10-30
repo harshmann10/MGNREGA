@@ -14,7 +14,7 @@ function App() {
       <div className="min-h-screen bg-gray-50">
         <OfflineBanner />
         <Header />
-        <main className="pt-0">
+          <main className="pt-0">
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/district/:code" element={<DashboardPage />} />

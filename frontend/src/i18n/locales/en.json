@@ -3,7 +3,7 @@
   "app_description": "Track MGNREGA performance in your district",
   "detecting_location": "Detecting your location...",
   "select_district": "Select Your District",
-  "district_selector_placeholder": "Select your state, district, and financial year to view the dashboard.",
+  "district_selector_placeholder": "Select your state and district to view the dashboard.",
   "loading": "Loading...",
   "error_fetching_metrics": "Failed to load metrics. Please try again.",
   "error_fetching_trends": "Failed to load trends. Please try again.",
@@ -57,6 +57,6 @@
   "select_manually": "Select Manually",
   "or": "OR",
   "auto_detect_failed": "Could not detect your location. Please select manually.",
-  "select_year": "Select Financial Year",
-  "select_month": "Select Month"
+  "back_home": "Back to Home",
+  "recent_trends": "Recent Trends (Last 6 Months)"
 }

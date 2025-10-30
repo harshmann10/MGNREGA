@@ -10,6 +10,10 @@ const districtRoutes = require('./routes/districtRoutes');
 const metricRoutes = require('./routes/metricRoutes');
 const trendRoutes = require('./routes/trendRoutes');
 const compareRoutes = require('./routes/compareRoutes');
+const locationRoutes = require('./routes/locationRoutes');
+
+// Import scheduler
+const { startScheduler } = require('./jobs/scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,9 +36,10 @@ app.use((req, res, next) => {
 // API Routes
 app.use('/api', stateRoutes);
 app.use('/api', districtRoutes);
-app.use('/api', metricRoutes);
+app.use('/api', metricRoutes); // Now with cache-first + lazy refresh
 app.use('/api', trendRoutes);
 app.use('/api', compareRoutes);
+app.use('/api', locationRoutes);
 
 // Health check endpoint (as per RPD section 8)
 app.get('/api/health', async (req, res) => {
@@ -79,7 +84,9 @@ app.get('/', (req, res) => {
       districts: '/api/districts?state=STATE_NAME',
       metrics: '/api/metrics/:district_code',
       trends: '/api/trends/:district_code?months=12',
-      compare: '/api/compare/:district_code'
+      compare: '/api/compare/:district_code',
+      geolocate: '/api/geolocate (POST)',
+      ip_location: '/api/ip-location'
     }
   });
 });
@@ -112,6 +119,13 @@ const startServer = async () => {
   try {
     // Connect to database
     await connectDatabase();
+    
+    // Start the scheduler after database connection
+    if (process.env.ENABLE_CRON_JOBS !== 'false') {
+      await startScheduler();
+    } else {
+      console.log('⚠️  Cron jobs are disabled (ENABLE_CRON_JOBS=false)');
+    }
     
     // Start listening
     app.listen(PORT, () => {

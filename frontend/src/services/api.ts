@@ -67,21 +67,14 @@ class APIService {
   }
 
   /**
-   * GET /api/metrics/:district_code?year=&month=
-   * Returns metrics for a district (latest or specific month/year)
+   * GET /api/metrics/:district_code
+   * Returns latest metrics for a district
    */
   async getMetrics(
-    districtCode: string,
-    year?: number,
-    month?: number
+    districtCode: string
   ): Promise<{ metric: DistrictMetric; meta: { last_updated: string; stale: boolean } }> {
-    const params: Record<string, any> = {};
-    if (year) params.year = year;
-    if (month) params.month = month;
-
     const response = await this.client.get<ApiResponse<DistrictMetric>>(
-      `/api/metrics/${districtCode}`,
-      { params }
+      `/api/metrics/${districtCode}`
     );
 
     return {
