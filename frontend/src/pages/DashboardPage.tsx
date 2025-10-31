@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { apiService } from '../services/api';
-import type { DistrictMetric, TrendDataPoint, ComparisonData } from '../types';
+import type { DistrictMetric, ComparisonData } from '../types';
 
 export default function DashboardPage() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [metric, setMetric] = useState<DistrictMetric | null>(null);
-  const [trends, setTrends] = useState<TrendDataPoint[]>([]);
   const [comparison, setComparison] = useState<ComparisonData | null>(null);
   const [meta, setMeta] = useState<{ last_updated: string; stale: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -21,20 +20,16 @@ export default function DashboardPage() {
     const fetchAllData = async () => {
       try {
         setLoading(true);
-        // Fetch all data in parallel
-        const [metricsResult, trendsResult, comparisonResult] = await Promise.allSettled([
+        // Fetch metrics and comparison in parallel
+        // Trends removed - not available for most districts and not displayed on dashboard
+        const [metricsResult, comparisonResult] = await Promise.allSettled([
           apiService.getMetrics(code),
-          apiService.getTrends(code, 6),
           apiService.getComparison(code),
         ]);
 
         if (metricsResult.status === 'fulfilled') {
           setMetric(metricsResult.value.metric);
           setMeta(metricsResult.value.meta);
-        }
-
-        if (trendsResult.status === 'fulfilled') {
-          setTrends(trendsResult.value);
         }
 
         if (comparisonResult.status === 'fulfilled') {
@@ -110,10 +105,10 @@ export default function DashboardPage() {
         {/* District Header */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            {metric.state}
+            {metric.district_name}
           </h1>
           <p className="text-xl text-gray-600">
-            {t('district_dashboard')}
+            {metric.state}
           </p>
           {meta && (
             <div className="mt-3 inline-block">
@@ -275,39 +270,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Trend Section - Simple Bar View */}
-        {trends.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              📈 {t('recent_trends')}
-            </h2>
-            <div className="space-y-4">
-              {trends.slice(-6).reverse().map((trend, idx) => {
-                const maxPersonDays = Math.max(...trends.map(t => t.total_persondays_generated));
-                const percentage = (trend.total_persondays_generated / maxPersonDays) * 100;
-                
-                return (
-                  <div key={idx} className="">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-semibold text-gray-700">
-                        {trend.month}/{trend.year}
-                      </span>
-                      <span className="text-sm font-bold text-blue-600">
-                        {formatValue(trend.total_persondays_generated)} {t('person_days')}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-6">
-                      <div
-                        className="bg-linear-to-r from-blue-500 to-green-500 h-6 rounded-full transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

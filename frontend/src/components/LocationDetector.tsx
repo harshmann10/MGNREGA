@@ -25,8 +25,9 @@ export default function LocationDetector() {
         });
 
         // Send coordinates to backend for reverse geocoding
+        const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/geolocate`,
+          `${apiUrl}/api/geolocate`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -47,8 +48,9 @@ export default function LocationDetector() {
       }
 
       // Fallback to IP-based detection
+      const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
       const ipResponse = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/ip-location`
+        `${apiUrl}/api/ip-location`
       );
 
       if (ipResponse.ok) {

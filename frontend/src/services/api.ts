@@ -9,7 +9,8 @@ import type {
   HealthStatus,
 } from '../types';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Normalize base URL to remove trailing slashes
+const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
 class APIService {
   private client: AxiosInstance;
