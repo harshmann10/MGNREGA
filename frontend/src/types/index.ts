@@ -17,6 +17,7 @@ export interface District {
 export interface DistrictMetric {
   _id: string;
   district_code: string;
+  district_name: string;
   state: string;
   year: number;
   month: number;
