@@ -41,18 +41,22 @@ router.get('/metrics/:district_code', async (req, res) => {
       });
     }
 
-    // Check if data is stale (older than 36 hours)
+    // Check if data is stale (older than configured threshold)
+    // Make threshold configurable via env (default: 96 hours)
+    const STALE_HOURS = Number(process.env.STALE_HOURS || 96);
     const hoursSinceUpdate = (Date.now() - metrics.last_updated) / (1000 * 60 * 60);
-    const isStale = hoursSinceUpdate > 36 || metrics.stale;
+    const isStale = hoursSinceUpdate > STALE_HOURS || metrics.stale;
 
     // Lazy refresh: If stale, trigger background refresh (non-blocking)
+    let refreshKey;
+    let refreshTriggered = false;
     if (isStale) {
-      const refreshKey = `${district.state}-${district_code}`;
-      
+      refreshKey = `${district.state}-${district_code}`;
       if (!refreshQueue.has(refreshKey)) {
         refreshQueue.add(refreshKey);
-        console.log(`🔄 Lazy refresh triggered for ${district.district_name} (${Math.round(hoursSinceUpdate)}h old)`);
-        
+        refreshTriggered = true;
+        console.log(`🔄 Lazy refresh triggered for ${district.district_name} (${Math.round(hoursSinceUpdate)}h old; threshold ${STALE_HOURS}h)`);
+
         // Fire-and-forget background refresh
         refreshStateInBackground(district.state, refreshKey)
           .catch(err => {
@@ -85,8 +89,9 @@ router.get('/metrics/:district_code', async (req, res) => {
       meta: {
         last_updated: metrics.last_updated,
         stale: isStale,
+        stale_threshold_hours: STALE_HOURS,
         hours_since_update: Math.round(hoursSinceUpdate),
-        refresh_triggered: isStale && refreshQueue.has(refreshKey),
+        refresh_triggered: refreshTriggered,
         timestamp: new Date().toISOString()
       }
     });

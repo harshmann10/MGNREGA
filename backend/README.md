@@ -193,6 +193,9 @@ backend/
 
 See `.env.example` for all available configuration options.
 
+Notable options:
+- `STALE_HOURS` — Number of hours after which district metrics are considered stale and a background refresh is triggered. Defaults to `96`. Cached data is still served immediately with `meta.stale=true` while the refresh runs.
+
 ## 🐛 Troubleshooting
 
 **MongoDB connection fails:**
