@@ -22,7 +22,7 @@ MGNREGA/
 │   └── 📡 server.js     # Express app with CORS, error handling, health check
 ├── 🎨 frontend/         # React + Vite + TypeScript PWA
 │   ├── 🧩 components/   # MetricCard, LocationDetector, LanguageToggle, etc.
-│   ├── 📄 pages/        # HomePage, DashboardPage, TrendsPage, ComparePage
+│   ├── 📄 pages/        # HomePage, DashboardPage (simplified single-page view)
 │   ├── 🔗 services/     # api.ts (Axios service with interceptors)
 │   ├── 🌐 i18n/         # English + Hindi translations
 │   └── 📱 vite.config.ts # PWA configuration with Workbox caching
@@ -36,10 +36,10 @@ MGNREGA/
 - Automatic fallback chain for maximum accessibility
 
 ### 📊 **Comprehensive Analytics**
-- **Dashboard**: Current month metrics with month-over-month deltas
-- **Trends**: 12-month historical performance charts
-- **Comparison**: District vs state average vs top performer
-- **Metrics**: Person-days, wages disbursed, households worked, pending payments
+- **Dashboard**: Current month metrics with inline comparison
+- **District vs State**: Compare your district with state average and top performer
+- **Key Metrics**: Person-days, wages disbursed, households worked, pending payments
+- **Simple & Clear**: All information on one page, no complex navigation
 
 ### 🌍 **Accessibility & Inclusion**
 - **Bilingual UI**: Complete Hindi + English support with `react-i18next`
@@ -156,7 +156,6 @@ GET /api/health                      # System status & sync info
 GET /api/states                      # List all states
 GET /api/districts?state=STATE_NAME  # Districts for a state
 GET /api/metrics/:district_code      # Latest metrics for district
-GET /api/trends/:district_code?months=12  # 12-month trend data
 GET /api/compare/:district_code      # District vs state comparison
 ```
 
